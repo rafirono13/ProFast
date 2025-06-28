@@ -6,7 +6,7 @@ import Swal from 'sweetalert2';
 import useAuth from '../../../Hooks/useAuth';
 
 const Login = () => {
-  const { signInUser, googleSignIn, user } = useAuth();
+  const { signInUser, googleSignIn } = useAuth();
   const navigate = useNavigate();
   const {
     register,

@@ -80,9 +80,9 @@ const Navbar = () => {
               <div
                 tabIndex={0}
                 role="button"
-                className="btn avatar btn-circle btn-ghost"
+                className="btn avatar btn-circle w-14 btn-ghost"
               >
-                <div className="w-10 rounded-full">
+                <div className="w-22 rounded-full">
                   <img
                     alt="User profile picture"
                     src={
