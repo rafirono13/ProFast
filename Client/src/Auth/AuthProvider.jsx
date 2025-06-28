@@ -11,7 +11,7 @@ import {
 } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
-const Authprovider = ({ children }) => {
+const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const googleProvider = new GoogleAuthProvider();
@@ -37,6 +37,17 @@ const Authprovider = ({ children }) => {
     return updateProfile(auth.currentUser, {
       displayName: name,
       photoURL: photo,
+    }).then(() => {
+      // ✨ THE FIX: After updating the profile in Firebase, we manually
+      // update our local 'user' state. This makes sure the UI (like the navbar)
+      // gets the new photoURL and displayName instantly, fixing the broken image issue.
+      if (auth.currentUser) {
+        setUser({
+          ...auth.currentUser,
+          displayName: name,
+          photoURL: photo,
+        });
+      }
     });
   };
 
@@ -50,7 +61,7 @@ const Authprovider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      console.log('Currend user', currentUser);
+      console.log('Current user from observer:', currentUser);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -71,4 +82,4 @@ const Authprovider = ({ children }) => {
   );
 };
 
-export default Authprovider;
+export default AuthProvider;
