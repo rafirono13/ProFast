@@ -4,13 +4,8 @@ import { useForm } from 'react-hook-form';
 import AuthImg from '../../../assets/AuthImg.png';
 import ImgUpload from '../../../assets/image-upload-icon.png';
 import { Link, useNavigate } from 'react-router';
-import Swal from 'sweetalert2';
 import useAuth from '../../../Hooks/useAuth';
-import axiosPublic from './../../../API/axiosPublic';
-
-// ✨ IMPORTANT: Add your ImgBB API key here. You can get a free one from imgbb.com.
-const IMAGE_HOSTING_KEY = 'YOUR_IMAGE_HOSTING_API_KEY';
-const IMAGE_HOSTING_API = `https://api.imgbb.com/1/upload?key=${IMAGE_HOSTING_KEY}`;
+import Swal from 'sweetalert2';
 
 const Register = () => {
   const { createUser, updateUserProfile, googleSignIn } = useAuth();
@@ -19,69 +14,18 @@ const Register = () => {
     register,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors },
   } = useForm();
 
-  const [profileImagePreview, setProfileImagePreview] = useState(null);
-  const [profileImageUrl, setProfileImageUrl] = useState('');
-  const [uploadMethod, setUploadMethod] = useState('file');
-
-  const handleProfileImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setProfileImagePreview(URL.createObjectURL(file));
-      setProfileImageUrl('');
-      setValue('profileImageUrl', '');
-    } else {
-      setProfileImagePreview(null);
-    }
-  };
-
-  const handleProfileUrlChange = (event) => {
-    const url = event.target.value;
-    setProfileImageUrl(url);
-    if (url) {
-      setProfileImagePreview(url);
-      setValue('profilePicture', null);
-    } else {
-      setProfileImagePreview(null);
-    }
-  };
+  // State to hold the photo URL from the input for live preview
+  const [photoUrl, setPhotoUrl] = useState('');
 
   const onSubmit = async (data) => {
     console.log('Registration form submitted! Data:', data);
 
-    let photoURL = 'https://i.ibb.co/3sWp2z0/user-default-image-modified.png'; // A default profile picture
-
-    // --- Image Hosting Logic ---
-    // If a file is uploaded, host it on ImgBB to get a URL
-    if (uploadMethod === 'file' && data.profilePicture[0]) {
-      const imageFile = { image: data.profilePicture[0] };
-      try {
-        const res = await axiosPublic.post(IMAGE_HOSTING_API, imageFile, {
-          headers: {
-            'content-type': 'multipart/form-data',
-          },
-        });
-        if (res.data.success) {
-          photoURL = res.data.data.display_url;
-          console.log('Image hosted successfully:', photoURL);
-        }
-      } catch (error) {
-        console.error('Image hosting failed:', error);
-        Swal.fire({
-          title: 'Image Upload Failed',
-          text: 'Could not upload your profile picture. Using a default one for now.',
-          icon: 'warning',
-          confirmButtonColor: '#f97316', // orange-500
-        });
-      }
-    }
-    // If a URL is provided, use that
-    else if (uploadMethod === 'url' && data.profileImageUrl) {
-      photoURL = data.profileImageUrl;
-    }
+    // Use the provided photoURL or a default one if the field is empty
+    const photoURL =
+      data.photoURL || 'https://i.ibb.co/MkYb03C3/user-Avatar.png';
 
     // --- Firebase User Creation ---
     createUser(data.email, data.password)
@@ -89,7 +33,7 @@ const Register = () => {
         const createdUser = result.user;
         console.log('User created in Firebase:', createdUser);
 
-        // --- Update Firebase Profile ---
+        // --- Update Firebase Profile with name and photoURL ---
         updateUserProfile(data.name, photoURL)
           .then(() => {
             console.log('Firebase profile updated with name and photo.');
@@ -101,10 +45,11 @@ const Register = () => {
               email: data.email,
               name: data.name,
               uid: createdUser.uid,
-              photoURL: photoURL,
+              photoURL: photoURL, // Send the final photoURL
               creationTime: createdUser.metadata.creationTime,
               lastSignInTime: createdUser.metadata.lastSignInTime,
             };
+            console.log('firebase user Register info', userInfo);
 
             /*
             axiosPublic.post('/users', userInfo)
@@ -126,7 +71,7 @@ const Register = () => {
           })
           .catch((error) => {
             console.error('Firebase profile update error:', error);
-            // Even if profile update fails, the user is created, so we might just warn them.
+            // Handle error (e.g., show a notification)
           });
       })
       .catch((error) => {
@@ -151,8 +96,6 @@ const Register = () => {
         console.log('Google Sign-In User:', googleUser);
 
         // 🔥 **API Call to Your Backend (MongoDB)** 🔥
-        // This is where you would send the new user's information to your database.
-        // We use PUT here to handle both new and existing users gracefully.
         const userInfo = {
           email: googleUser.email,
           name: googleUser.displayName,
@@ -161,6 +104,7 @@ const Register = () => {
           creationTime: googleUser.metadata.creationTime,
           lastSignInTime: googleUser.metadata.lastSignInTime,
         };
+        console.log('google user Register info', userInfo);
 
         /*
         axiosPublic.put('/users', userInfo)
@@ -200,98 +144,25 @@ const Register = () => {
           <h2 className="mb-2 text-4xl font-bold">Create an Account</h2>
           <p className="mb-8 text-gray-500">Register with Profast</p>
 
-          <div className="mb-6 flex flex-col">
-            <div className="mb-4 flex justify-center">
-              {profileImagePreview ? (
-                <img
-                  src={profileImagePreview}
-                  alt="Profile Preview"
-                  className="h-24 w-24 transform rounded-full border-4 border-lime-400 object-cover shadow-md transition-transform duration-200 ease-in-out hover:scale-105"
-                />
-              ) : (
-                <img
-                  src={ImgUpload}
-                  alt="Upload Profile"
-                  className="h-24 w-24 transform rounded-full border-4 border-lime-400 bg-white object-cover p-2 shadow-md transition-transform duration-200 ease-in-out hover:scale-105"
-                />
-              )}
-            </div>
-
-            <div className="mb-4 flex justify-center gap-2">
-              <button
-                type="button"
-                className={`btn btn-sm ${uploadMethod === 'file' ? 'bg-lime-400 text-white' : 'btn-ghost'}`}
-                onClick={() => {
-                  setUploadMethod('file');
-                  setProfileImageUrl('');
-                  setValue('profileImageUrl', '');
-                  setProfileImagePreview(null);
-                }}
-              >
-                Upload File
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${uploadMethod === 'url' ? 'bg-lime-400 text-white' : 'btn-ghost'}`}
-                onClick={() => {
-                  setUploadMethod('url');
-                  setValue('profilePicture', null);
-                  setProfileImagePreview(null);
-                }}
-              >
-                Use URL
-              </button>
-            </div>
-
-            {uploadMethod === 'file' ? (
-              <label
-                htmlFor="profilePicture"
-                className="cursor-pointer text-center"
-              >
-                <input
-                  id="profilePicture"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  {...register('profilePicture', {
-                    onChange: handleProfileImageChange,
-                  })}
-                />
-                <p className="mt-2 text-sm text-gray-500 transition-colors duration-200 hover:text-lime-500">
-                  Click to Upload Profile Picture (Optional)
-                </p>
-              </label>
-            ) : (
-              <div className="flex flex-col items-center">
-                <input
-                  className={`input-bordered input w-full max-w-xs ${errors.profileImageUrl ? 'input-error' : ''}`}
-                  id="profileImageUrl"
-                  type="url"
-                  placeholder="Paste image URL here"
-                  value={profileImageUrl}
-                  {...register('profileImageUrl', {
-                    onChange: handleProfileUrlChange,
-                    pattern: {
-                      value: /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i,
-                      message: 'Please enter a valid URL',
-                    },
-                  })}
-                />
-                {errors.profileImageUrl && (
-                  <p className="mt-1 text-sm text-error">
-                    {errors.profileImageUrl.message}
-                  </p>
-                )}
-              </div>
-            )}
-            {errors.profilePicture && (
-              <p className="mt-1 text-sm text-error">
-                {errors.profilePicture.message}
-              </p>
-            )}
+          {/* --- Profile Picture Preview --- */}
+          <div className="mb-6 flex justify-center">
+            <img
+              src={
+                photoUrl ||
+                ImgUpload /* Show pasted URL or default upload icon */
+              }
+              alt="Profile Preview"
+              onError={(e) => {
+                // If the URL is broken, fall back to the default icon
+                e.currentTarget.src = ImgUpload;
+              }}
+              className="h-24 w-24 transform rounded-full border-4 border-lime-400 object-cover shadow-md transition-transform duration-200 ease-in-out hover:scale-105"
+            />
           </div>
 
+          {/* --- Registration Form --- */}
           <form onSubmit={handleSubmit(onSubmit)}>
+            {/* Name */}
             <div className="mb-4">
               <label
                 className="mb-2 block text-sm font-bold text-gray-700"
@@ -311,6 +182,36 @@ const Register = () => {
               )}
             </div>
 
+            {/* Photo URL */}
+            <div className="mb-4">
+              <label
+                className="mb-2 block text-sm font-bold text-gray-700"
+                htmlFor="photoURL"
+              >
+                Photo URL (Optional)
+              </label>
+              <input
+                className={`input-bordered input w-full ${errors.photoURL ? 'input-error' : ''}`}
+                id="photoURL"
+                type="url"
+                placeholder="https://example.com/image.png"
+                {...register('photoURL', {
+                  pattern: {
+                    value: /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i,
+                    message: 'Please enter a valid URL',
+                  },
+                })}
+                // Update the state on every change for the live preview
+                onChange={(e) => setPhotoUrl(e.target.value)}
+              />
+              {errors.photoURL && (
+                <p className="mt-1 text-sm text-error">
+                  {errors.photoURL.message}
+                </p>
+              )}
+            </div>
+
+            {/* Email */}
             <div className="mb-4">
               <label
                 className="mb-2 block text-sm font-bold text-gray-700"
@@ -338,6 +239,7 @@ const Register = () => {
               )}
             </div>
 
+            {/* Password */}
             <div className="mb-4">
               <label
                 className="mb-2 block text-sm font-bold text-gray-700"
@@ -365,6 +267,7 @@ const Register = () => {
               )}
             </div>
 
+            {/* Confirm Password */}
             <div className="mb-6">
               <label
                 className="mb-2 block text-sm font-bold text-gray-700"
