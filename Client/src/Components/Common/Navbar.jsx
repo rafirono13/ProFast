@@ -1,8 +1,26 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router';
 import ProFastLogo from '../Custom/ProFastLogo';
+import Swal from 'sweetalert2';
+import useAuth from '../../Hooks/useAuth';
 
 const Navbar = () => {
+  const { user, logOut } = useAuth();
+
+  const handleLogOut = () => {
+    logOut()
+      .then(() => {
+        Swal.fire({
+          title: 'Logged Out!',
+          text: 'You have been successfully logged out.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      })
+      .catch((error) => console.error(error));
+  };
+
   const menuItems = (
     <>
       <li>
@@ -33,18 +51,17 @@ const Navbar = () => {
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                {' '}
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
                   d="M4 6h16M4 12h8m-8 6h16"
-                />{' '}
+                />
               </svg>
             </div>
             <ul
               tabIndex={0}
-              className="dropdown-content menu z-1 mt-3 w-52 menu-sm rounded-box bg-base-100 p-2 shadow"
+              className="dropdown-content menu z-[1] mt-3 w-52 menu-sm rounded-box bg-base-100 p-2 shadow"
             >
               {menuItems}
             </ul>
@@ -57,13 +74,44 @@ const Navbar = () => {
           <ul className="menu menu-horizontal px-1">{menuItems}</ul>
         </div>
         <div className="navbar-end">
-          <Link to="/auth/login">
-            <div>
-              <button className="btn rounded-full bg-lime-400 px-8 text-white hover:bg-lime-500">
-                Login
-              </button>
+          {user ? (
+            // If user is logged in, show profile and logout button
+            <div className="dropdown dropdown-end">
+              <div
+                tabIndex={0}
+                role="button"
+                className="btn avatar btn-circle btn-ghost"
+              >
+                <div className="w-10 rounded-full">
+                  <img
+                    alt="User profile picture"
+                    src={
+                      user.photoURL ||
+                      'https://i.ibb.co/3sWp2z0/user-default-image-modified.png'
+                    }
+                  />
+                </div>
+              </div>
+              <ul
+                tabIndex={0}
+                className="dropdown-content menu z-[1] mt-3 w-52 rounded-box bg-base-100 p-2 shadow"
+              >
+                <li className="p-2 font-bold">{user.displayName}</li>
+                <li>
+                  <a onClick={handleLogOut}>Logout</a>
+                </li>
+              </ul>
             </div>
-          </Link>
+          ) : (
+            // If user is logged out, show login button
+            <Link to="/auth/login">
+              <div>
+                <button className="btn rounded-full bg-lime-400 px-8 text-white hover:bg-lime-500">
+                  Login
+                </button>
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </div>

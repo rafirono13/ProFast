@@ -3,78 +3,192 @@ import { FcGoogle } from 'react-icons/fc';
 import { useForm } from 'react-hook-form';
 import AuthImg from '../../../assets/AuthImg.png';
 import ImgUpload from '../../../assets/image-upload-icon.png';
+import { Link, useNavigate } from 'react-router';
+import Swal from 'sweetalert2';
+import useAuth from '../../../Hooks/useAuth';
+import axiosPublic from './../../../API/axiosPublic';
+
+// ✨ IMPORTANT: Add your ImgBB API key here. You can get a free one from imgbb.com.
+const IMAGE_HOSTING_KEY = 'YOUR_IMAGE_HOSTING_API_KEY';
+const IMAGE_HOSTING_API = `https://api.imgbb.com/1/upload?key=${IMAGE_HOSTING_KEY}`;
 
 const Register = () => {
+  const { createUser, updateUserProfile, googleSignIn } = useAuth();
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
     watch,
-    setValue, // ✨ NEW: setValue is handy for programmatically setting form values
+    setValue,
     formState: { errors },
   } = useForm();
 
   const [profileImagePreview, setProfileImagePreview] = useState(null);
-  // ✨ NEW: State to manage the profile image URL input value
   const [profileImageUrl, setProfileImageUrl] = useState('');
-  // ✨ NEW: State to toggle between file upload and URL upload
-  const [uploadMethod, setUploadMethod] = useState('file'); // 'file' or 'url'
+  const [uploadMethod, setUploadMethod] = useState('file');
 
   const handleProfileImageChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setProfileImagePreview(URL.createObjectURL(file));
-      setProfileImageUrl(''); // Clear URL if a file is selected ✨ NEW:
-      setValue('profileImageUrl', ''); // Clear URL field in form data ✨ NEW:
+      setProfileImageUrl('');
+      setValue('profileImageUrl', '');
     } else {
       setProfileImagePreview(null);
     }
   };
 
-  // ✨ NEW: Function to handle URL input changes
   const handleProfileUrlChange = (event) => {
     const url = event.target.value;
     setProfileImageUrl(url);
     if (url) {
-      setProfileImagePreview(url); // Use the URL directly for preview
-      setValue('profilePicture', null); // Clear file input if URL is entered ✨ NEW:
+      setProfileImagePreview(url);
+      setValue('profilePicture', null);
     } else {
       setProfileImagePreview(null);
     }
   };
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     console.log('Registration form submitted! Data:', data);
 
-    // ✨ MODIFIED: Now, decide whether to send a file or a URL
-    const formData = new FormData();
-    formData.append('name', data.name);
-    formData.append('email', data.email);
-    formData.append('password', data.password);
+    let photoURL = 'https://i.ibb.co/3sWp2z0/user-default-image-modified.png'; // A default profile picture
 
-    if (
-      uploadMethod === 'file' &&
-      data.profilePicture &&
-      data.profilePicture[0]
-    ) {
-      formData.append('profilePicture', data.profilePicture[0]);
-    } else if (uploadMethod === 'url' && data.profileImageUrl) {
-      formData.append('profileImageUrl', data.profileImageUrl);
+    // --- Image Hosting Logic ---
+    // If a file is uploaded, host it on ImgBB to get a URL
+    if (uploadMethod === 'file' && data.profilePicture[0]) {
+      const imageFile = { image: data.profilePicture[0] };
+      try {
+        const res = await axiosPublic.post(IMAGE_HOSTING_API, imageFile, {
+          headers: {
+            'content-type': 'multipart/form-data',
+          },
+        });
+        if (res.data.success) {
+          photoURL = res.data.data.display_url;
+          console.log('Image hosted successfully:', photoURL);
+        }
+      } catch (error) {
+        console.error('Image hosting failed:', error);
+        Swal.fire({
+          title: 'Image Upload Failed',
+          text: 'Could not upload your profile picture. Using a default one for now.',
+          icon: 'warning',
+          confirmButtonColor: '#f97316', // orange-500
+        });
+      }
+    }
+    // If a URL is provided, use that
+    else if (uploadMethod === 'url' && data.profileImageUrl) {
+      photoURL = data.profileImageUrl;
     }
 
-    // Example with Axios (uncomment and use when ready):
-    // axios.post('/api/register', formData, {
-    //   headers: {
-    //     'Content-Type': 'multipart/form-data' // Still important if sending FormData
-    //   }
-    // })
-    //   .then(response => {
-    //     console.log('Registration successful:', response.data);
-    //     // Handle successful registration (e.g., redirect to login, show success message)
-    //   })
-    //   .catch(error => {
-    //     console.error('Registration error:', error.response?.data || error.message);
-    //     // Handle registration errors
-    //   });
+    // --- Firebase User Creation ---
+    createUser(data.email, data.password)
+      .then((result) => {
+        const createdUser = result.user;
+        console.log('User created in Firebase:', createdUser);
+
+        // --- Update Firebase Profile ---
+        updateUserProfile(data.name, photoURL)
+          .then(() => {
+            console.log('Firebase profile updated with name and photo.');
+
+            // 🔥 **API Call to Your Backend (MongoDB)** 🔥
+            // Now that the user is created and the profile is updated,
+            // we send all the info to our own database.
+            const userInfo = {
+              email: data.email,
+              name: data.name,
+              uid: createdUser.uid,
+              photoURL: photoURL,
+              creationTime: createdUser.metadata.creationTime,
+              lastSignInTime: createdUser.metadata.lastSignInTime,
+            };
+
+            /*
+            axiosPublic.post('/users', userInfo)
+              .then(res => {
+                console.log('New user saved to DB:', res.data);
+              })
+              .catch(err => {
+                console.error('Error saving new user to DB:', err);
+              });
+            */
+
+            Swal.fire({
+              title: 'Account Created!',
+              text: "You've successfully registered!",
+              icon: 'success',
+              confirmButtonColor: '#84cc16',
+            });
+            navigate('/'); // Redirect after successful registration
+          })
+          .catch((error) => {
+            console.error('Firebase profile update error:', error);
+            // Even if profile update fails, the user is created, so we might just warn them.
+          });
+      })
+      .catch((error) => {
+        console.error('Firebase user creation error:', error);
+        Swal.fire({
+          title: 'Registration Failed',
+          text:
+            error.code === 'auth/email-already-in-use'
+              ? 'This email is already registered. Please login.'
+              : 'Something went wrong. Please try again.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+        });
+      });
+  };
+
+  // Handle Google Sign-In
+  const handleGoogleSignIn = () => {
+    googleSignIn()
+      .then((result) => {
+        const googleUser = result.user;
+        console.log('Google Sign-In User:', googleUser);
+
+        // 🔥 **API Call to Your Backend (MongoDB)** 🔥
+        // This is where you would send the new user's information to your database.
+        // We use PUT here to handle both new and existing users gracefully.
+        const userInfo = {
+          email: googleUser.email,
+          name: googleUser.displayName,
+          uid: googleUser.uid,
+          photoURL: googleUser.photoURL,
+          creationTime: googleUser.metadata.creationTime,
+          lastSignInTime: googleUser.metadata.lastSignInTime,
+        };
+
+        /*
+        axiosPublic.put('/users', userInfo)
+          .then(res => {
+            console.log('User data sent to DB after Google sign-in:', res.data);
+          })
+          .catch(err => {
+            console.error('Error sending user data to DB:', err);
+          });
+        */
+
+        Swal.fire({
+          title: 'Signed In with Google!',
+          text: `Welcome, ${googleUser.displayName}!`,
+          icon: 'success',
+          confirmButtonColor: '#84cc16',
+        });
+        navigate('/');
+      })
+      .catch((error) => {
+        console.error('Google Sign-In Error:', error);
+        Swal.fire({
+          title: 'Google Sign-In Failed',
+          text: 'Something went wrong. Please try again.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+        });
+      });
   };
 
   const password = watch('password', '');
@@ -86,12 +200,8 @@ const Register = () => {
           <h2 className="mb-2 text-4xl font-bold">Create an Account</h2>
           <p className="mb-8 text-gray-500">Register with Profast</p>
 
-          {/* Profile Picture Upload Section */}
           <div className="mb-6 flex flex-col">
-            {/* ✨ MODIFIED: Image preview now checks for both sources */}
             <div className="mb-4 flex justify-center">
-              {' '}
-              {/* Centering the preview */}
               {profileImagePreview ? (
                 <img
                   src={profileImagePreview}
@@ -107,35 +217,32 @@ const Register = () => {
               )}
             </div>
 
-            {/* ✨ NEW: Toggle between file and URL upload */}
             <div className="mb-4 flex justify-center gap-2">
               <button
                 type="button"
-                className={`btn bg-lime-400 btn-sm ${uploadMethod === 'file' ? 'btn' : 'btn-ghost'}`}
+                className={`btn btn-sm ${uploadMethod === 'file' ? 'bg-lime-400 text-white' : 'btn-ghost'}`}
                 onClick={() => {
                   setUploadMethod('file');
-                  setProfileImageUrl(''); // Clear URL input when switching
-                  setValue('profileImageUrl', ''); // Clear URL from form data
-                  setProfileImagePreview(null); // Clear preview
+                  setProfileImageUrl('');
+                  setValue('profileImageUrl', '');
+                  setProfileImagePreview(null);
                 }}
               >
                 Upload File
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${uploadMethod === 'url' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn btn-sm ${uploadMethod === 'url' ? 'bg-lime-400 text-white' : 'btn-ghost'}`}
                 onClick={() => {
                   setUploadMethod('url');
-                  // Clear file input value when switching to URL
                   setValue('profilePicture', null);
-                  setProfileImagePreview(null); // Clear preview
+                  setProfileImagePreview(null);
                 }}
               >
                 Use URL
               </button>
             </div>
 
-            {/* ✨ NEW: Conditional rendering for upload type */}
             {uploadMethod === 'file' ? (
               <label
                 htmlFor="profilePicture"
@@ -161,10 +268,9 @@ const Register = () => {
                   id="profileImageUrl"
                   type="url"
                   placeholder="Paste image URL here"
-                  value={profileImageUrl} // Controlled component for immediate preview
+                  value={profileImageUrl}
                   {...register('profileImageUrl', {
                     onChange: handleProfileUrlChange,
-                    // You might want to add pattern validation for URLs here
                     pattern: {
                       value: /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i,
                       message: 'Please enter a valid URL',
@@ -176,12 +282,8 @@ const Register = () => {
                     {errors.profileImageUrl.message}
                   </p>
                 )}
-                <p className="mt-2 text-sm text-gray-500">
-                  Or use an image URL (Optional)
-                </p>
               </div>
             )}
-            {/* Errors for profilePicture are still relevant for file uploads */}
             {errors.profilePicture && (
               <p className="mt-1 text-sm text-error">
                 {errors.profilePicture.message}
@@ -189,9 +291,7 @@ const Register = () => {
             )}
           </div>
 
-          {/* Registration Form */}
           <form onSubmit={handleSubmit(onSubmit)}>
-            {/* ... (rest of your form inputs remain the same) ... */}
             <div className="mb-4">
               <label
                 className="mb-2 block text-sm font-bold text-gray-700"
@@ -301,14 +401,18 @@ const Register = () => {
           </form>
 
           <div className="mb-4 text-center text-gray-500">
-            Already have an account?
-            <a href="#" className="text-lime-500 hover:text-lime-700">
+            Already have an account?{' '}
+            <Link
+              to="/auth/login"
+              className="text-lime-500 hover:text-lime-700"
+            >
               Login
-            </a>
+            </Link>
           </div>
           <div className="divider">Or</div>
           <div className="mb-4">
             <button
+              onClick={handleGoogleSignIn}
               className="btn w-full border-gray-300 btn-outline"
               type="button"
             >
