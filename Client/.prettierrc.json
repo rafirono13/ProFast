@@ -1,0 +1,18 @@
+{
+  "semi": true,
+  "trailingComma": "all",
+  "singleQuote": true,
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "plugins": ["prettier-plugin-tailwindcss"],
+  "tailwindStylesheet": "./src/index.css",
+  "tailwindAttributes": ["className", "class"],
+  "tailwindFunctions": ["clsx", "cn", "cva", "tw"],
+  "tailwindPreserveWhitespace": false,
+  "tailwindPreserveDuplicates": false
+}

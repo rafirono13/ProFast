@@ -1,0 +1,11 @@
+# Top-Level
+node_modules/
+.env
+.DS_Store
+
+# Ignore logs
+logs
+*.log
+
+# Ignore VSCode settings if needed
+.vscode/
