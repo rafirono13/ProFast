@@ -5,9 +5,6 @@ import { FaBox, FaFileAlt } from 'react-icons/fa';
 import axios from 'axios';
 import useAuth from '../../../Hooks/useAuth';
 
-// --- FEATURE: Generates a unique tracking ID ---
-// We create a unique ID using a prefix, the current time, and a random string.
-// This makes it professional and impossible to guess.
 const generateTrackingId = () => {
   const prefix = 'ZAP';
   const timestamp = Date.now();
@@ -20,11 +17,8 @@ const AddParcel = () => {
   const [divisions, setDivisions] = useState([]);
   const [allWarehouses, setAllWarehouses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  // Get the current logged-in user from your auth hook.
   const { user } = useAuth();
 
-  // --- DATA FETCHING ---
-  // This useEffect runs once to fetch necessary data from your public JSON files.
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -48,7 +42,7 @@ const AddParcel = () => {
     };
 
     fetchData();
-  }, []); // The empty array [] means this effect runs only once when the component mounts.
+  }, []);
 
   // --- FORM SETUP (React Hook Form) ---
   const {
@@ -59,13 +53,10 @@ const AddParcel = () => {
     formState: { errors },
   } = useForm();
 
-  // "watch" for changes in these fields to update the UI dynamically.
   const watchedParcelType = watch('parcelType');
   const watchedSenderRegion = watch('senderRegion');
   const watchedReceiverRegion = watch('receiverRegion');
 
-  // --- UPGRADE: Detailed Cost Calculation ---
-  // This function now returns a detailed object with each part of the cost.
   const calculateCostDetails = (data) => {
     const weight = parseFloat(data.parcelWeight) || 0;
     const withinCity =
@@ -102,10 +93,7 @@ const AddParcel = () => {
     return details;
   };
 
-  // --- MAIN FUNCTION: Form Submission ---
-  // This function runs when the user submits the form.
   const onSubmit = (data) => {
-    // 1. Get the detailed cost breakdown.
     const costDetails = calculateCostDetails(data);
     const trackingId = generateTrackingId();
 
@@ -114,7 +102,6 @@ const AddParcel = () => {
         ? `<p class="text-sm text-gray-600"><strong>Weight:</strong> ${data.parcelWeight} kg</p>`
         : '';
 
-    // --- UX UPGRADE: Create the itemized receipt HTML ---
     const costBreakdownHtml = `
       <div class="space-y-1 py-2 text-sm text-gray-600 border-t border-b mb-2">
         <div class="flex justify-between"><span>Base Fare</span><span>৳${costDetails.baseFare}</span></div>
@@ -123,7 +110,6 @@ const AddParcel = () => {
       </div>
     `;
 
-    // 2. --- UX FEATURE: Show the enhanced receipt-style summary. ---
     Swal.fire({
       title: 'Booking Summary',
       html: `

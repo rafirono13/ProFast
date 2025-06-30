@@ -67,7 +67,7 @@ const Register = () => {
               icon: 'success',
               confirmButtonColor: '#84cc16',
             });
-            navigate('/'); // Redirect after successful registration
+            navigate('/');
           })
           .catch((error) => {
             console.error('Firebase profile update error:', error);
