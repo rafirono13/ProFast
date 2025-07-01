@@ -4,6 +4,7 @@ import Swal from 'sweetalert2';
 import { FaBox, FaFileAlt } from 'react-icons/fa';
 import axios from 'axios';
 import useAuth from '../../../Hooks/useAuth';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
 
 const generateTrackingId = () => {
   const prefix = 'ZAP';
@@ -18,6 +19,7 @@ const AddParcel = () => {
   const [allWarehouses, setAllWarehouses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const axiosSecure = useAxiosSecure();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,7 +158,6 @@ const AddParcel = () => {
         htmlContainer: 'text-base',
       },
     }).then((result) => {
-      // 3. If the user confirms, prepare the final data object for the database.
       if (result.isConfirmed) {
         const finalData = {
           ...data,
@@ -167,13 +168,29 @@ const AddParcel = () => {
           trackingId: trackingId,
           userEmail: user?.email,
         };
-
         console.log('Submitting this object to database:', finalData);
 
-        // --- BACKEND INTEGRATION ---
-        // axios.post('https://your-api.com/parcels', finalData)
+        axiosSecure
+          .post('/parcels', finalData)
+          .then((res) => {
+            if (res.data.insertedId) {
+              Swal.fire({
+                title: 'Success!',
+                html: `Your parcel has been booked! <br>Your Tracking ID is: <br><strong class="text-lime-600 text-lg">${trackingId}</strong>`,
+                icon: 'success',
+              });
+              reset();
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+            Swal.fire({
+              title: 'Error!',
+              text: 'Could not book your parcel.',
+              icon: 'error',
+            });
+          });
 
-        // 4. Show a final success message with the tracking ID and reset the form.
         Swal.fire({
           title: 'Success!',
           html: `Your parcel has been booked! <br>Your Tracking ID is: <br><strong class="text-lime-600 text-lg">${trackingId}</strong>`,
