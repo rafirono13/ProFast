@@ -6,10 +6,15 @@ import ImgUpload from '../../../assets/image-upload-icon.png';
 import { Link, useNavigate } from 'react-router';
 import useAuth from '../../../Hooks/useAuth';
 import Swal from 'sweetalert2';
+import useUserActions from '../../../Hooks/Users/useUserActions';
 
 const Register = () => {
   const { createUser, updateUserProfile, googleSignIn } = useAuth();
   const navigate = useNavigate();
+
+  // Mutation fucntion from hook
+  const { createUserInDb } = useUserActions();
+
   const {
     register,
     handleSubmit,
@@ -17,13 +22,11 @@ const Register = () => {
     formState: { errors },
   } = useForm();
 
-  // State to hold the photo URL from the input for live preview
   const [photoUrl, setPhotoUrl] = useState('');
 
   const onSubmit = async (data) => {
     console.log('Registration form submitted! Data:', data);
 
-    // Use the provided photoURL or a default one if the field is empty
     const photoURL =
       data.photoURL || 'https://i.ibb.co/MkYb03C3/user-Avatar.png';
 
@@ -31,59 +34,43 @@ const Register = () => {
     createUser(data.email, data.password)
       .then((result) => {
         const createdUser = result.user;
-        console.log('User created in Firebase:', createdUser);
+        updateUserProfile(data.name, photoURL).then(() => {
+          const userInfoForDb = {
+            name: data.name,
+            email: data.email,
+            role: 'user',
+            photoURL: photoURL,
+            creationTime: createdUser.metadata.creationTime,
+            lastSignInTime: createdUser.metadata.lastSignInTime,
+          };
 
-        // --- Update Firebase Profile with name and photoURL ---
-        updateUserProfile(data.name, photoURL)
-          .then(() => {
-            console.log('Firebase profile updated with name and photo.');
-
-            // 🔥 **API Call to Your Backend (MongoDB)** 🔥
-            // Now that the user is created and the profile is updated,
-            // we send all the info to our own database.
-            const userInfo = {
-              email: data.email,
-              name: data.name,
-              uid: createdUser.uid,
-              photoURL: photoURL, // Send the final photoURL
-              creationTime: createdUser.metadata.creationTime,
-              lastSignInTime: createdUser.metadata.lastSignInTime,
-            };
-            console.log('firebase user Register info', userInfo);
-
-            /*
-            axiosPublic.post('/users', userInfo)
-              .then(res => {
-                console.log('New user saved to DB:', res.data);
-              })
-              .catch(err => {
-                console.error('Error saving new user to DB:', err);
+          createUserInDb(userInfoForDb, {
+            onSuccess: (dbResponse) => {
+              if (dbResponse.insertedId) {
+                Swal.fire({
+                  title: 'Account Created!',
+                  text: "You're all set!",
+                  icon: 'success',
+                });
+                navigate('/');
+              }
+            },
+            onError: (error) => {
+              console.error('Error saving user to DB:', error);
+              Swal.fire({
+                title: 'Oops!',
+                text: 'Could not save your profile.',
+                icon: 'error',
               });
-            */
-
-            Swal.fire({
-              title: 'Account Created!',
-              text: "You've successfully registered!",
-              icon: 'success',
-              confirmButtonColor: '#84cc16',
-            });
-            navigate('/');
-          })
-          .catch((error) => {
-            console.error('Firebase profile update error:', error);
-            // Handle error (e.g., show a notification)
+            },
           });
+        });
       })
       .catch((error) => {
-        console.error('Firebase user creation error:', error);
         Swal.fire({
           title: 'Registration Failed',
-          text:
-            error.code === 'auth/email-already-in-use'
-              ? 'This email is already registered. Please login.'
-              : 'Something went wrong. Please try again.',
+          text: error.message,
           icon: 'error',
-          confirmButtonColor: '#ef4444',
         });
       });
   };
@@ -95,34 +82,35 @@ const Register = () => {
         const googleUser = result.user;
         console.log('Google Sign-In User:', googleUser);
 
-        // 🔥 **API Call to Your Backend (MongoDB)** 🔥
-        const userInfo = {
+        // Prepare the user info object for our database
+        const userInfoForDb = {
           email: googleUser.email,
           name: googleUser.displayName,
-          uid: googleUser.uid,
+          role: 'user', // Default role for Google sign-ups
           photoURL: googleUser.photoURL,
           creationTime: googleUser.metadata.creationTime,
           lastSignInTime: googleUser.metadata.lastSignInTime,
         };
-        console.log('google user Register info', userInfo);
 
-        /*
-        axiosPublic.put('/users', userInfo)
-          .then(res => {
-            console.log('User data sent to DB after Google sign-in:', res.data);
-          })
-          .catch(err => {
-            console.error('Error sending user data to DB:', err);
-          });
-        */
-
-        Swal.fire({
-          title: 'Signed In with Google!',
-          text: `Welcome, ${googleUser.displayName}!`,
-          icon: 'success',
-          confirmButtonColor: '#84cc16',
+        // Use our custom hook to send the data to the backend
+        createUserInDb(userInfoForDb, {
+          onSuccess: () => {
+            Swal.fire({
+              title: 'Signed In!',
+              text: `Welcome, ${googleUser.displayName}!`,
+              icon: 'success',
+            });
+            navigate('/');
+          },
+          onError: (error) => {
+            console.error('Error saving Google user to DB:', error);
+            Swal.fire({
+              title: 'Oops!',
+              text: 'Could not save your profile after Google Sign-In.',
+              icon: 'error',
+            });
+          },
         });
-        navigate('/');
       })
       .catch((error) => {
         console.error('Google Sign-In Error:', error);
@@ -130,7 +118,6 @@ const Register = () => {
           title: 'Google Sign-In Failed',
           text: 'Something went wrong. Please try again.',
           icon: 'error',
-          confirmButtonColor: '#ef4444',
         });
       });
   };

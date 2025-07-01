@@ -4,10 +4,12 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router';
 import Swal from 'sweetalert2';
 import useAuth from '../../../Hooks/useAuth';
+import useUserActions from '../../../Hooks/Users/useUserActions';
 
 const Login = () => {
   const { signInUser, googleSignIn } = useAuth();
   const navigate = useNavigate();
+  const { createUserInDb } = useUserActions();
   const {
     register,
     handleSubmit,
@@ -16,52 +18,21 @@ const Login = () => {
 
   // Handle form submission for email/password login
   const onSubmit = (data) => {
-    console.log(data);
     signInUser(data.email, data.password)
       .then((result) => {
         const loggedInUser = result.user;
-        console.log('User logged in:', loggedInUser);
-
-        // 🔥 **API Call to Your Backend (MongoDB)** 🔥
-        // Here's where you'll send the user info to your database.
-        // We are creating/updating the user info on every login to keep the last login time updated.
-        const userInfo = {
-          email: loggedInUser.email,
-          name: loggedInUser.displayName,
-          uid: loggedInUser.uid,
-          photoURL: loggedInUser.photoURL,
-          lastSignInTime: loggedInUser.metadata.lastSignInTime,
-        };
-        console.log('Login user info', userInfo);
-
-        /*
-        axiosPublic.put('/users', userInfo)
-          .then(res => {
-            console.log('User data sent to DB:', res.data);
-          })
-          .catch(err => {
-            console.error('Error sending user data to DB:', err);
-          });
-        */
-
         Swal.fire({
           title: 'Login Successful!',
           text: `Welcome back, ${loggedInUser.displayName || 'friend'}!`,
           icon: 'success',
-          confirmButtonColor: '#84cc16', // lime-500
         });
-        navigate('/'); // Redirect to homepage or dashboard after login
+        navigate('/');
       })
       .catch((error) => {
-        console.error('Login Error:', error);
         Swal.fire({
           title: 'Oops!',
-          text:
-            error.code === 'auth/invalid-credential'
-              ? 'Invalid email or password. Please try again.'
-              : error.message,
+          text: `${error.message}, please try again.`,
           icon: 'error',
-          confirmButtonColor: '#ef4444', // red-500
         });
       });
   };
@@ -71,45 +42,43 @@ const Login = () => {
     googleSignIn()
       .then((result) => {
         const googleUser = result.user;
-        console.log('Google Sign-In User:', googleUser);
 
-        // 🔥 **API Call to Your Backend (MongoDB)** 🔥
-        // This is where you would send the new user's information to your database.
-        const userInfo = {
+        // Prepare the user info object for our database
+        const userInfoForDb = {
           email: googleUser.email,
           name: googleUser.displayName,
-          uid: googleUser.uid,
+          role: 'user',
           photoURL: googleUser.photoURL,
           creationTime: googleUser.metadata.creationTime,
           lastSignInTime: googleUser.metadata.lastSignInTime,
         };
-        console.log('Google login user info', userInfo);
 
-        /*
-        axiosPublic.put('/users', userInfo)
-          .then(res => {
-            console.log('User data sent to DB after Google sign-in:', res.data);
-          })
-          .catch(err => {
-            console.error('Error sending user data to DB:', err);
-          });
-        */
-
-        Swal.fire({
-          title: 'Signed In with Google!',
-          text: `Welcome, ${googleUser.displayName}!`,
-          icon: 'success',
-          confirmButtonColor: '#84cc16',
+        // Use our custom hook to send the data to the backend
+        createUserInDb(userInfoForDb, {
+          onSuccess: () => {
+            Swal.fire({
+              title: 'Signed In!',
+              text: `Welcome, ${googleUser.displayName}!`,
+              icon: 'success',
+            });
+            navigate('/');
+          },
+          onError: (error) => {
+            console.error('Error saving Google user to DB:', error);
+            Swal.fire({
+              title: 'Oops!',
+              text: 'Could not sync your profile after Google Sign-In.',
+              icon: 'error',
+            });
+          },
         });
-        navigate('/');
       })
       .catch((error) => {
         console.error('Google Sign-In Error:', error);
         Swal.fire({
           title: 'Google Sign-In Failed',
-          text: 'Something went wrong. Please try again.',
+          text: 'Something went wrong.',
           icon: 'error',
-          confirmButtonColor: '#ef4444',
         });
       });
   };
