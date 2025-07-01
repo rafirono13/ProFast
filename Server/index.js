@@ -1,9 +1,49 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const admin = require("firebase-admin");
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+const serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+//Middleware for Firebase token verification
+//This guard checks if a user is logged in.
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("Unauthorized access");
+  }
+  const idToken = authHeader.split(" ")[1];
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+};
+
+// Middleware for verify if it's admin or not
+// This guard checks if the logged-in user has the 'admin' role.
+// It should always be used *after* verifyToken.
+const verifyAdmin = async (req, res, next) => {
+  const email = req.user.email;
+  const query = { email: email };
+  const userCollection = client.db("ProFast").collection("users");
+  const user = await userCollection.findOne(query);
+  if (user?.role !== "admin") {
+    return res.status(403).send({ message: "forbidden access" });
+  }
+  next();
+};
 
 // Middleware
 app.use(cors());
@@ -25,15 +65,92 @@ async function run() {
   try {
     await client.connect();
 
-    // --- Start Your API Endpoints Here ---
+    // --- DataBase Collections ---
+    const database = client.db("ProFast");
+    const userCollection = database.collection("users");
+    const parcelCollection = database.collection("parcels");
 
+    // --- Start Your API Endpoints Here ---
+    // !Create and Store USER
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "User already exists" });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+    // !Get all user (for admin)
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    // !READ to check if a user is an admin
+    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+      if (req.params.email !== req.user.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const user = await userCollection.findOne({ email: req.params.email });
+      res.send({ isAdmin: user?.role === "admin" });
+    });
+
+    // !Create and Store USER
+    // <<------------------------------------------------>>
+    // !Parcel API endpoints
+
+    // *Create and Store Parcel
+    app.post("/parcels", verifyToken, async (req, res) => {
+      const parcelData = req.body;
+      const result = await parcelCollection.insertOne(parcelData);
+      res.send(result);
+    });
+
+    // *READ all parcels (for admin)
+    app.get("/parcels", verifyToken, verifyAdmin, async (req, res) => {
+      const result = await parcelCollection.find().toArray();
+      res.send(result);
+    });
+
+    // *READ all parcels for a specific user
+    // LOGGED-IN USER: Get their own parcels.
+    app.get("/parcels/user/:email", verifyToken, async (req, res) => {
+      if (req.params.email !== req.user.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const query = { userEmail: req.params.email };
+      const result = await parcelCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // *Update a parcel status (for admin / rider)
+    app.patch("/parcels/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const updatedStaus = req.body; // e.g., { status: "paid", deliveryStatus: "ready-to-pickup" }
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: updatedStaus.status,
+          deliveryStatus: updatedStaus.deliveryStatus,
+        },
+      };
+      const result = await parcelCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    //
+
+    // !Parcel API endpoints
+    // <<------------------------------------------------>>
     // --- End Your API Endpoints Here ---
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
-    await client.close();
+    // await client.close();
   }
 }
 
