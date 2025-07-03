@@ -83,13 +83,13 @@ async function run() {
       res.send(result);
     });
     // !Get all user (for admin)
-    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
+    app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
     // !READ to check if a user is an admin
-    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+    app.get("/users/admin/:email", async (req, res) => {
       if (req.params.email !== req.user.email) {
         return res.status(403).send({ message: "forbidden access" });
       }
@@ -102,31 +102,29 @@ async function run() {
     // !Parcel API endpoints
 
     // *Create and Store Parcel
-    app.post("/parcels", verifyToken, async (req, res) => {
+    app.post("/parcels", async (req, res) => {
       const parcelData = req.body;
       const result = await parcelCollection.insertOne(parcelData);
       res.send(result);
     });
 
     // *READ all parcels (for admin)
-    app.get("/parcels", verifyToken, verifyAdmin, async (req, res) => {
+    app.get("/parcels", async (req, res) => {
       const result = await parcelCollection.find().toArray();
       res.send(result);
     });
 
     // *READ all parcels for a specific user
     // LOGGED-IN USER: Get their own parcels.
-    app.get("/parcels/user/:email", verifyToken, async (req, res) => {
-      if (req.params.email !== req.user.email) {
-        return res.status(403).send({ message: "forbidden access" });
-      }
+    app.get("/parcels/user/:email", async (req, res) => {
+      const userEmail = req.params.email;
       const query = { userEmail: req.params.email };
       const result = await parcelCollection.find(query).toArray();
       res.send(result);
     });
 
     // *Update a parcel status (for admin / rider)
-    app.patch("/parcels/:id", verifyToken, verifyAdmin, async (req, res) => {
+    app.patch("/parcels/:id", async (req, res) => {
       const id = req.params.id;
       const updatedStaus = req.body; // e.g., { status: "paid", deliveryStatus: "ready-to-pickup" }
       const filter = { _id: new ObjectId(id) };
@@ -137,6 +135,13 @@ async function run() {
         },
       };
       const result = await parcelCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/parcels/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await parcelCollection.deleteOne(query);
       res.send(result);
     });
 
