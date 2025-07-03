@@ -6,6 +6,12 @@ import Login from '../Components/Pages/Auth Pages/Login';
 import Register from '../Components/Pages/Auth Pages/Register';
 import Coverage from '../Components/Pages/Others/Coverage';
 import AddParcel from '../Components/Pages/Private/AddParcel';
+import PrivateRoute from './PrivateRoute';
+import DashBoardLayouts from '../Layouts/DashBoardLayouts';
+import AdminPanel from '../Components/Pages/Private/AdminPanel';
+import AdminRoute from './AdminRoute';
+import UsersPanel from './../Components/Pages/Private/UsersPanel';
+import UserProfile from './../Components/Pages/Private/UserProfile';
 
 const router = createBrowserRouter([
   {
@@ -23,7 +29,11 @@ const router = createBrowserRouter([
       },
       {
         path: 'AddParcel',
-        element: <AddParcel></AddParcel>,
+        element: (
+          <PrivateRoute>
+            <AddParcel></AddParcel>
+          </PrivateRoute>
+        ),
       },
     ],
   },
@@ -38,6 +48,36 @@ const router = createBrowserRouter([
       {
         path: 'register',
         element: <Register></Register>,
+      },
+    ],
+  },
+  {
+    path: '/dashboard',
+    element: <DashBoardLayouts></DashBoardLayouts>,
+    children: [
+      {
+        index: true,
+        element: (
+          <PrivateRoute>
+            <UserProfile></UserProfile>
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'my-parcels',
+        element: (
+          <PrivateRoute>
+            <UsersPanel></UsersPanel>
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'admin',
+        element: (
+          <AdminRoute>
+            <AdminPanel></AdminPanel>
+          </AdminRoute>
+        ),
       },
     ],
   },

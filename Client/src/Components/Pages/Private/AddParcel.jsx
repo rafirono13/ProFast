@@ -178,6 +178,7 @@ const AddParcel = () => {
                 title: 'Success!',
                 html: `Your parcel has been booked! <br>Your Tracking ID is: <br><strong class="text-lime-600 text-lg">${trackingId}</strong>`,
                 icon: 'success',
+                confirmButtonColor: '#84cc16',
               });
               reset();
             }
@@ -190,14 +191,6 @@ const AddParcel = () => {
               icon: 'error',
             });
           });
-
-        Swal.fire({
-          title: 'Success!',
-          html: `Your parcel has been booked! <br>Your Tracking ID is: <br><strong class="text-lime-600 text-lg">${trackingId}</strong>`,
-          icon: 'success',
-          confirmButtonColor: '#84cc16',
-        });
-        reset();
       }
     });
   };

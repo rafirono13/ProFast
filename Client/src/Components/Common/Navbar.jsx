@@ -1,11 +1,12 @@
 import React from 'react';
-import { Link, NavLink } from 'react-router';
+import { Link, NavLink, useNavigate } from 'react-router';
 import ProFastLogo from '../Custom/ProFastLogo';
 import Swal from 'sweetalert2';
 import useAuth from '../../Hooks/useAuth';
 
 const Navbar = () => {
   const { user, logOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogOut = () => {
     logOut()
@@ -17,6 +18,7 @@ const Navbar = () => {
           timer: 2000,
           showConfirmButton: false,
         });
+        navigate('/');
       })
       .catch((error) => console.error(error));
   };
@@ -35,6 +37,11 @@ const Navbar = () => {
       <li>
         <NavLink to="/coverage">Coverage</NavLink>
       </li>
+      {user && (
+        <li>
+          <NavLink to="/dashboard">Dashboard</NavLink>
+        </li>
+      )}
     </>
   );
 
@@ -87,7 +94,7 @@ const Navbar = () => {
                     alt="User profile picture"
                     src={
                       user.photoURL ||
-                      'https://i.ibb.co/3sWp2z0/user-default-image-modified.png'
+                      'https://i.ibb.co/MkYb03C3/user-Avatar.png'
                     }
                   />
                 </div>

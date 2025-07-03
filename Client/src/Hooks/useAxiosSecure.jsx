@@ -12,27 +12,28 @@ const useAxiosSecure = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Request Interceptor: Attaches the token to every outgoing request.
-    axiosSecure.interceptors.request.use(
+    // This function will run BEFORE every request using axiosSecure.
+    const requestInterceptor = axiosSecure.interceptors.request.use(
       async (config) => {
+        console.log('Request interceptor triggered...');
         if (user) {
           const token = await user.getIdToken();
+          // console.log('Attaching token:', token);
+          // We are attaching the user's Firebase token to the request headers.
           config.headers.authorization = `Bearer ${token}`;
         }
         return config;
       },
-      (error) => {
-        return Promise.reject(error);
-      },
+      (error) => Promise.reject(error),
     );
 
-    // Response Interceptor: Handles auth errors (e.g., bad token).
-    axiosSecure.interceptors.response.use(
-      (response) => {
-        return response;
-      },
+    // This function will run AFTER a response is received.
+    const responseInterceptor = axiosSecure.interceptors.response.use(
+      (response) => response,
       async (error) => {
-        const status = error.response ? error.response.status : null;
+        const status = error.response?.status;
+        // If we get a 401 or 403, it means our token is bad.
+        // So, we log the user out and send them to the login page.
         if (status === 401 || status === 403) {
           await logOut();
           navigate('/auth/login');
@@ -41,11 +42,14 @@ const useAxiosSecure = () => {
       },
     );
 
+    // This is a cleanup function to prevent memory leaks.
     return () => {
-      axiosSecure.interceptors.request.eject();
-      axiosSecure.interceptors.response.eject();
+      axiosSecure.interceptors.request.eject(requestInterceptor);
+      axiosSecure.interceptors.response.eject(responseInterceptor);
     };
   }, [user, logOut, navigate]);
+
+  return axiosSecure;
 };
 
 export default useAxiosSecure;
