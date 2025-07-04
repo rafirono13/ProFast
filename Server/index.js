@@ -123,10 +123,65 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/parcels/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await parcelCollection.findOne(query);
+
+        if (!result) {
+          return res.status(404).send({ message: "Parcel not found" });
+        }
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching parcel:", error);
+        res.status(500).send({ message: "Server error" });
+      }
+    });
+
+    // *Update a full parcel (for user edits before payment)
+    app.put("/parcels/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedParcelData = req.body;
+
+      // It's a good practice to remove the _id from the body
+      // to prevent any errors with MongoDB's immutable _id field.
+      delete updatedParcelData._id;
+      delete updatedParcelData.userEmail;
+      delete updatedParcelData.bookingDate;
+      delete updatedParcelData.trackingId;
+      delete updatedParcelData.status;
+      delete updatedParcelData.deliveryStatus;
+
+      const filter = {
+        _id: new ObjectId(id),
+        status: "unpaid", // Safety check: Only allow edits on unpaid parcels
+      };
+
+      const updateDoc = {
+        $set: updatedParcelData,
+      };
+
+      const result = await parcelCollection.updateOne(filter, updateDoc);
+
+      // If nothing was modified, it might be because the status wasn't 'unpaid'
+      // or the ID was not found.
+      if (result.modifiedCount === 0) {
+        return res.status(403).send({
+          message:
+            "Failed to update. The parcel may have already been paid for or does not exist.",
+        });
+      }
+
+      res.send(result);
+    });
+
     // *Update a parcel status (for admin / rider)
     app.patch("/parcels/:id", async (req, res) => {
       const id = req.params.id;
       const updatedStaus = req.body; // e.g., { status: "paid", deliveryStatus: "ready-to-pickup" }
+
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
