@@ -3,10 +3,12 @@ import { FaEdit, FaTrashAlt, FaCreditCard, FaBoxOpen } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import useMyParcels from '../../../Hooks/Users/useMyParcels';
 import axiosPublic from '../../../API/axiosPublic';
+import { useNavigate } from 'react-router';
 
 const UsersPanel = () => {
   // Using your custom hook to get the data! So clean!
   const { myParcels, isLoading, refetch } = useMyParcels();
+  const navigate = useNavigate();
 
   // --- Action Handlers for the Buttons ---
 
@@ -19,6 +21,7 @@ const UsersPanel = () => {
       `This will open an edit form for parcel: ${parcel.trackingId}`,
       'info',
     );
+    navigate(`/dashboard/edit-parcel/${parcel._id}`);
   };
 
   const handlePay = (parcel) => {

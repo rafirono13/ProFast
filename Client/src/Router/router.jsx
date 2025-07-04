@@ -12,6 +12,7 @@ import AdminPanel from '../Components/Pages/Private/AdminPanel';
 import AdminRoute from './AdminRoute';
 import UsersPanel from './../Components/Pages/Private/UsersPanel';
 import UserProfile from './../Components/Pages/Private/UserProfile';
+import EditParcel from '../Components/Pages/Private/EditParcel';
 
 const router = createBrowserRouter([
   {
@@ -68,6 +69,14 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoute>
             <UsersPanel></UsersPanel>
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'edit-parcel/:id',
+        element: (
+          <PrivateRoute>
+            <EditParcel></EditParcel>
           </PrivateRoute>
         ),
       },
