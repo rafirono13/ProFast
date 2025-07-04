@@ -25,7 +25,7 @@ const UsersPanel = () => {
   };
 
   const handlePay = (parcel) => {
-    // This is where you'll integrate your payment gateway later.
+    navigate(`/dashboard/payemnt/${parcel._id}`);
     console.log('Paying for parcel:', parcel._id);
     Swal.fire(
       'Payment Gateway',

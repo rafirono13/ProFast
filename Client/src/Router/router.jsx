@@ -13,6 +13,7 @@ import AdminRoute from './AdminRoute';
 import UsersPanel from './../Components/Pages/Private/UsersPanel';
 import UserProfile from './../Components/Pages/Private/UserProfile';
 import EditParcel from '../Components/Pages/Private/EditParcel';
+import Payment from '../Components/Pages/Others/Payment';
 
 const router = createBrowserRouter([
   {
@@ -69,6 +70,14 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoute>
             <UsersPanel></UsersPanel>
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'payemnt/:id',
+        element: (
+          <PrivateRoute>
+            <Payment></Payment>
           </PrivateRoute>
         ),
       },
