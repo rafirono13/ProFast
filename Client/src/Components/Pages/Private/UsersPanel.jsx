@@ -25,13 +25,8 @@ const UsersPanel = () => {
   };
 
   const handlePay = (parcel) => {
-    navigate(`/dashboard/payemnt/${parcel._id}`);
+    navigate(`/dashboard/payment/${parcel._id}`);
     console.log('Paying for parcel:', parcel._id);
-    Swal.fire(
-      'Payment Gateway',
-      'This will redirect to the payment page!',
-      'info',
-    );
   };
 
   const handleDelete = (parcel) => {

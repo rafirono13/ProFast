@@ -19,7 +19,7 @@ const DashBoardLayouts = () => {
   const userLinks = (
     <>
       <li>
-        <NavLink to="/dashboard" end>
+        <NavLink to="/dashboard">
           <FaRegUserCircle /> My Profile
         </NavLink>
       </li>
