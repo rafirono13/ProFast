@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const admin = require("firebase-admin");
-
+const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -69,6 +69,7 @@ async function run() {
     const database = client.db("ProFast");
     const userCollection = database.collection("users");
     const parcelCollection = database.collection("parcels");
+    const paymentCollection = database.collection("payments");
 
     // --- Start Your API Endpoints Here ---
     // !Create and Store USER
@@ -199,10 +200,74 @@ async function run() {
       const result = await parcelCollection.deleteOne(query);
       res.send(result);
     });
-
-    //
-
     // !Parcel API endpoints
+
+    // --- Payment API Endpoints ---
+
+    // *Create a payment intent
+    app.post("/create-payment-intent", async (req, res) => {
+      try {
+        const { amount, currency } = req.body;
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount,
+          currency,
+          payment_method_types: ["card"],
+        });
+        res.json({ clientSecret: paymentIntent.client_secret });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Save parcel and update parcel
+    app.post("/payments", async (req, res) => {
+      const paymentInfo = req.body;
+      const paymentWithDate = {
+        ...paymentInfo,
+        paymentDate: new Date(),
+      };
+      try {
+        const savedPayment = await paymentCollection.insertOne(paymentWithDate);
+        const parcelFilter = { _id: new ObjectId(paymentInfo.parcelId) };
+        const parcelUpdateDoc = {
+          $set: {
+            status: "paid",
+            transactionId: paymentInfo.transactionId,
+          },
+        };
+        const updatedParcel = await parcelCollection.updateOne(
+          parcelFilter,
+          parcelUpdateDoc
+        );
+        res.status(201).send({
+          paymentResult: savedPayment,
+          parcelResult: updatedParcel,
+        });
+      } catch (error) {
+        console.error("Error processing payment:", error);
+        res.status(500).send({ error: error.message });
+      }
+    });
+    // GET PAYMENT HISTORY FOR A USER
+    app.get("payments/user/:email", async (req, res) => {
+      const userEmail = req.params.email;
+      const query = { userEmail: userEmail };
+      const result = await paymentCollection
+        .find(query)
+        .sort({ paymentDate: -1 })
+        .toArray();
+      res.send(result);
+    });
+    // GET ALL PAYMENT HISTORY (for Admin)
+    app.get("/payments", async (req, res) => {
+      // Add verifyToken and verifyAdmin here in a real-world scenario
+      const result = await paymentCollection
+        .find()
+        .sort({ paymentDate: -1 })
+        .toArray();
+      res.send(result);
+    });
+
     // <<------------------------------------------------>>
     // --- End Your API Endpoints Here ---
 
