@@ -6,6 +6,10 @@ import {
   FaPlusCircle,
   FaRegUserCircle,
   FaListAlt,
+  FaUserClock,
+  FaTruckPickup,
+  FaTruck,
+  FaMotorcycle,
 } from 'react-icons/fa';
 import useAuth from '../Hooks/useAuth';
 // We'll need this later to show different links for admins
@@ -29,11 +33,32 @@ const DashBoardLayouts = () => {
         </NavLink>
       </li>
       <li>
-        <NavLink to="/addParcel">
+        <NavLink to="/add-parcel">
           <FaPlusCircle /> Book a Parcel
         </NavLink>
       </li>
-      {/* Add more user-specific links here */}
+      <li>
+        <NavLink to="/dashboard/payment-history">
+          <FaListAlt /> Payment History
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/dashboard/track-parcel">
+          <FaTruck /> Track Parcel
+        </NavLink>
+      </li>
+
+      {/* Rider management links */}
+      <li>
+        <NavLink to="/dashboard/pending-riders">
+          <FaUserClock /> Pending Riders
+        </NavLink>
+      </li>
+      <li>
+        <NavLink to="/dashboard/active-riders">
+          <FaMotorcycle /> Active Riders
+        </NavLink>
+      </li>
     </>
   );
 

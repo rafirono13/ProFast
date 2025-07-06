@@ -13,7 +13,7 @@ const HomeLayout = () => {
           <Outlet></Outlet>
         </div>
       </main>
-      <footer className="mt-10">
+      <footer className="mt-8">
         <Footer></Footer>
       </footer>
     </div>

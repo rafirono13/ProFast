@@ -14,6 +14,11 @@ import UsersPanel from './../Components/Pages/Private/UsersPanel';
 import UserProfile from './../Components/Pages/Private/UserProfile';
 import EditParcel from '../Components/Pages/Private/EditParcel';
 import Payment from '../Components/Pages/Others/Payment';
+import TrackParcel from '../Components/Pages/Private/TrackParcel';
+import PaymentHistory from '../Components/Pages/Private/PaymentHistory';
+import RiderForm from '../Components/Pages/Private/RiderForm';
+import PendingRiders from '../Components/Pages/Private/PendingRiders';
+import ActiveRiders from '../Components/Pages/Private/ActiveRiders';
 
 const router = createBrowserRouter([
   {
@@ -30,12 +35,16 @@ const router = createBrowserRouter([
         loader: () => fetch('/data/warehouses.json'),
       },
       {
-        path: 'AddParcel',
+        path: 'add-parcel',
         element: (
           <PrivateRoute>
             <AddParcel></AddParcel>
           </PrivateRoute>
         ),
+      },
+      {
+        path: 'rider-form',
+        element: <RiderForm></RiderForm>,
       },
     ],
   },
@@ -82,10 +91,42 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'payment-history',
+        element: (
+          <PrivateRoute>
+            <PaymentHistory></PaymentHistory>
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'track-parcel',
+        element: (
+          <PrivateRoute>
+            <TrackParcel></TrackParcel>
+          </PrivateRoute>
+        ),
+      },
+      {
         path: 'edit-parcel/:id',
         element: (
           <PrivateRoute>
             <EditParcel></EditParcel>
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'pending-riders',
+        element: (
+          <PrivateRoute>
+            <PendingRiders></PendingRiders>
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: 'active-riders',
+        element: (
+          <PrivateRoute>
+            <ActiveRiders></ActiveRiders>
           </PrivateRoute>
         ),
       },

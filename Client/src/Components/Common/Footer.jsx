@@ -4,7 +4,7 @@ import ProFastLogo from '../Custom/ProFastLogo';
 const Footer = () => {
   return (
     <div>
-      <footer className="footer footer-horizontal footer-center bg-neutral text-neutral-content p-10">
+      <footer className="footer-center footer footer-horizontal rounded-t-2xl bg-neutral py-10 text-neutral-content">
         <aside>
           <ProFastLogo></ProFastLogo>
           <p className="font-bold">
@@ -15,7 +15,7 @@ const Footer = () => {
           <p>Copyright © {new Date().getFullYear()} - All right reserved</p>
         </aside>
         <nav>
-                    <div className="grid grid-flow-col gap-4">
+          <div className="grid grid-flow-col gap-4">
             <a>
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -26,22 +26,24 @@ const Navbar = () => {
   const menuItems = (
     <>
       <li>
-        <NavLink to="/">Home</NavLink>
-      </li>
-      <li>
         <NavLink to="/about">About us</NavLink>
       </li>
-      <li>
-        <NavLink to="/addParcel">Add Parcel</NavLink>
-      </li>
+      {user && (
+        <>
+          <li>
+            <NavLink to="/dashboard">Dashboard</NavLink>
+          </li>
+          <li>
+            <NavLink to="/add-parcel">Add Parcel</NavLink>
+          </li>
+        </>
+      )}
       <li>
         <NavLink to="/coverage">Coverage</NavLink>
       </li>
-      {user && (
-        <li>
-          <NavLink to="/dashboard">Dashboard</NavLink>
-        </li>
-      )}
+      <li>
+        <NavLink to="/rider-form">Be A Rider</NavLink>
+      </li>
     </>
   );
 
@@ -87,7 +89,7 @@ const Navbar = () => {
               <div
                 tabIndex={0}
                 role="button"
-                className="btn avatar btn-circle w-14 btn-ghost"
+                className="avatar btn-circle w-14 btn-ghost"
               >
                 <div className="w-22 rounded-full">
                   <img
